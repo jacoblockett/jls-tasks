@@ -121,7 +121,6 @@ jobs:
           min_installer="$(jq -er '.min_installer' manifest.json)"
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           [[ "$min_installer" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          [[ "$(jq -r '.format' manifest.json)" == 1 ]]
           [[ "$(jq -r '.name' manifest.json)" == tasks ]]
           [[ "$(jq -r '.skill_files | join(" ")' manifest.json)" == SKILL.md ]]
           [[ "$(jq -r '.instruction_fragment' manifest.json)" == AGENTS.md ]]
@@ -157,7 +156,7 @@ jobs:
           jq \
             --arg url "$url" \
             --arg sha256 "$sha256" \
-            '{format, name, version, min_installer, description, artifacts: {portable: {url: $url, sha256: $sha256}}}
+            '{name, version, min_installer, description, artifacts: {portable: {url: $url, sha256: $sha256}}}
              + (if has("dependencies") then {dependencies} else {} end)' \
             manifest.json > build/release/manifest.json
 
