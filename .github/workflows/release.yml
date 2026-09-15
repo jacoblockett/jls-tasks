@@ -154,16 +154,19 @@ jobs:
 
           sha256="$(sha256sum "$archive" | cut -d' ' -f1)"
           url="https://github.com/jacoblockett/jls-tasks/releases/download/$RELEASE_TAG/tasks.zip"
-          jq -n \
-            --arg version "$version" \
-            --arg min_installer "$min_installer" \
+          jq \
             --arg url "$url" \
             --arg sha256 "$sha256" \
-            '{format:1,name:"tasks",version:$version,min_installer:$min_installer,artifacts:{portable:{url:$url,sha256:$sha256}}}' \
-            > build/release/manifest.json
+            '{format, name, version, min_installer, description, artifacts: {portable: {url: $url, sha256: $sha256}}}
+             + (if has("dependencies") then {dependencies} else {} end)' \
+            manifest.json > build/release/manifest.json
 
           test -s "$archive"
           jq -e '.artifacts.portable.url and .artifacts.portable.sha256' build/release/manifest.json >/dev/null
+          jq -e --slurp '
+            .[0].description == .[1].description
+            and (.[0].dependencies // null) == (.[1].dependencies // null)
+          ' build/release/manifest.json manifest.json >/dev/null
 
       - name: Upload verified release bundle
         uses: actions/upload-artifact@v4
