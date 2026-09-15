@@ -3,7 +3,18 @@
   "name": "tasks",
   "version": "0.2.0",
   "min_installer": "0.4.0",
-  "description": "Lossless, exhaustive compiler from authoritative goals and source material into bite-sized actionable task graphs.",
+  "description": "Compiles a task set using Beads from a given source or goal",
+  "dependencies": [
+    {
+      "name": "Beads",
+      "install_url": "https://github.com/gastownhall/beads/blob/main/docs/getting-started/installation.md",
+      "detect": {
+        "command": [
+          "bd"
+        ]
+      }
+    }
+  ],
   "skill_files": [
     "SKILL.md"
   ],
