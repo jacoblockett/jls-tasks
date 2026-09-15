@@ -1,7 +1,7 @@
 {
   "format": 1,
   "name": "tasks",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "min_installer": "0.4.0",
   "description": "Compiles a task set using Beads from a given source or goal",
   "dependencies": [
