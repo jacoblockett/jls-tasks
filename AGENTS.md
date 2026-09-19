@@ -5,7 +5,11 @@ Use `$tasks` when the user asks to convert an authoritative goal, specification,
 
 Tasks currently writes to Beads. Do not use Tasks for ordinary issue operations such as checking ready work, claiming an issue, adding notes, or closing completed work. Use the official `beads` skill and current `bd` CLI guidance for ordinary tracker operation.
 
-Tasks never implements the generated work. It owns exhaustive source coverage, top-down decomposition, provenance, dependency preservation, fine-grained task design, and independent final review.
+Tasks never implements the generated work. It owns exhaustive source coverage, top-down decomposition, provenance, dependency preservation, fine-grained task design, convergent repair, and independent final review.
+
+A Tasks transaction is not finished because a reviewer found defects. Reviewer `REPAIR` verdicts are internal work instructions: preserve the current packet/checkpoint, run the required repair specialist stage, and continue review automatically. Do not ask the user whether to continue merely because more internally repairable work remains. Return control for review failure only when the reviewer identifies a genuine external blocker requiring missing user authority or unavailable capability.
+
+Substantive Tasks transactions maintain resumable JLS-owned recovery state under `.jls/tasks/`. Do not discard the strongest design packet on review failure. Delete transaction recovery state only after final durable-state review PASS or explicit user abandonment.
 
 The Beads CLI remains authoritative for current backend command mechanics. Start substantive Tasks work with:
 
