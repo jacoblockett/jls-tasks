@@ -35,14 +35,20 @@
   "generated_cleanup": [
     {
       "kind": "beads-metadata",
-      "description": "Beads tasks/issues generated from a goal/intent",
+      "description": "Tasks-generated Beads tasks/issues",
+      "metadata_key": "tasks",
+      "metadata_value": "owned"
+    },
+    {
+      "kind": "beads-metadata",
+      "description": "Legacy Tasks-generated Beads tasks/issues",
       "metadata_key": "jls-tasks",
       "metadata_value": "owned"
     }
   ],
   "generated_data": [
     {
-      "path": ".jls/tasks",
+      "path": ".tasks",
       "marker": "project.json",
       "description": "Resumable Tasks design and review transaction checkpoints"
     }
