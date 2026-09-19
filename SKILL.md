@@ -8,7 +8,7 @@ description: Exhaustively compile a user-designated authoritative goal, specific
 Tasks is a lossless compiler from authoritative source material to durable actionable work. It does not implement the resulting work.
 Use this workflow only to derive, write, and verify tasks from the exact source scope the user designated.
 
-Tasks currently uses Beads as its native task backend. The official `beads` skill and live `bd` CLI documentation remain authoritative for Beads mechanics. Tasks owns source fidelity, decomposition, provenance, coverage, and review.
+Tasks currently uses Beads as its native task backend. The official `beads` skill and live `bd` CLI documentation remain authoritative for Beads mechanics. Tasks owns source fidelity, decomposition, provenance, coverage, repair, and review.
 
 ## Invariants
 
@@ -22,14 +22,18 @@ Tasks currently uses Beads as its native task backend. The official `beads` skil
 8. Parent issues provide structure and shared context. Leaf issues own executable responsibilities. Do not use a parent epic as a substitute for missing leaves.
 9. Each executable issue must be self-contained enough to resume without the original conversation. Preserve necessary context, source anchors, constraints, dependencies, and objective acceptance conditions when they exist.
 10. Preserve provenance. Each issue must identify the source anchors that justify it. Structured sources should retain native IDs when available. Unstructured sources should use stable path/section/line or equivalent anchors when practical.
-11. Preserve dependencies that materially affect execution order. Add inferred technical dependencies only when they are genuinely required, and distinguish them from source-stated dependencies in issue context when useful.
+11. Preserve dependencies that materially affect execution order. Add inferred technical dependencies only when genuinely required, and distinguish them from source-stated dependencies in issue context when useful.
 12. Existing tracker items are context, not authority over the supplied source. Reuse or update a clearly equivalent existing issue instead of duplicating it, but do not let stale tracker state erase or rewrite authoritative source requirements.
-13. Do not invent product decisions to make the task graph look complete. Material ambiguity that prevents faithful decomposition becomes a blocker, not a guessed requirement.
+13. Do not invent product decisions to make the task graph look complete. Material ambiguity that prevents faithful decomposition is an external blocker; defects in Tasks' own design are not.
 14. Children run serially. Consume and close each child before spawning another. Children never spawn children.
-15. Spawn prompts contain only dynamic source/project arguments, packets, and exact reviewer deficiencies. The installed specialist definition owns its semantic contract.
-16. One repair attempt is allowed after a failed reviewed design and one repair attempt after a failed final durable-state review. Do not enter reviewer/worker ping-pong.
-17. Do not implement, edit product code, or perform the work represented by the created tasks.
-18. Every Beads issue newly created by Tasks must carry exact structured issue metadata `{"jls-tasks":"owned"}`. Never add this ownership marker to a pre-existing issue that Tasks only reuses or updates.
+15. Spawn prompts contain only dynamic source/project arguments, current transaction packets, and exact reviewer deficiencies. The installed specialist definition owns its semantic contract.
+16. A reviewer finding omissions, weak provenance, incomplete constraint propagation, oversized/overlapping issues, missing integration work, bad dependencies, or other correctable design defects is an instruction to repair, not a reason to stop.
+17. There is no fixed repair-attempt limit. Continue targeted design or durable-state repair while the remaining deficiencies can be resolved from the authorized source, available project context, current tracker state, and installed tooling.
+18. Never throw away the strongest recoverable design merely because review failed. Repair the current packet in place and preserve stable source IDs and issue keys wherever their meaning survives.
+19. Return control because of review failure only for a genuine external blocker: required user authority/evidence is missing, a required specialist/backend/tool is unavailable, the authoritative source cannot be read, or the backend cannot faithfully represent/apply the reviewed work. Internal non-convergence alone is not an external blocker.
+20. Do not mutate Beads until a design Reviewer returns PASS. Final-review repairs may mutate only the current transaction's created issues or explicitly mapped reused issues.
+21. Do not implement, edit product code, or perform the work represented by the created tasks.
+22. Every Beads issue newly created by Tasks must carry exact structured issue metadata `{"jls-tasks":"owned"}`. Never add this ownership marker to a pre-existing issue that Tasks only reuses or updates.
 
 ## Required specialists
 
@@ -38,7 +42,7 @@ JLS installs two native specialists:
 - `tasks-designer`
 - `tasks-reviewer`
 
-Use the exact registered name. Do not replace a required specialist with a generic child or parent-thread semantic judgment. If a required specialist cannot run, fail the stage closed.
+Use the exact registered name. Do not replace a required specialist with a generic child or parent-thread semantic judgment. If a required specialist cannot run, that is a genuine external blocker.
 
 ## Live backend guidance
 
@@ -70,6 +74,31 @@ bd ready
 Use the current help output for exact flags, fields, dependency syntax, hierarchy support, metadata syntax, and JSON output. Prefer structured `--json` reads where supported.
 Do not run `bd init` automatically. If no Beads database exists, report that prerequisite instead of silently initializing tracker state.
 
+## Durable transaction recovery
+
+Substantive Tasks work uses JLS-owned recovery state under:
+
+```text
+<PROJECT_ROOT>/.jls/tasks/
+```
+
+Create `.jls/tasks/project.json` as the ownership marker when the recovery root is first needed. Store each active transaction under `.jls/tasks/transactions/<transaction-id>/`.
+
+Recovery state is not requirement authority. It is a resumable copy of work already derived from the authoritative source. At minimum persist:
+
+- the resolved `GOAL`, `SOURCE_SCOPE`, and `CONTEXT_SCOPE`
+- current stage
+- latest complete `DESIGN_PACKET`
+- latest review verdict and structured deficiency ledger
+- resolved deficiency IDs from prior revisions when useful
+- `APPLIED_MAPPING` once Beads mutation begins
+
+Checkpoint before launching the next specialist stage and immediately after consuming its result. Large specialist packets should be written into this transaction directory rather than depending on chat context.
+
+On a later invocation, inspect matching unfinished Tasks transactions before starting from scratch. Re-read the authoritative source and current project/tracker context; recovery state never overrides changed source reality.
+
+Delete the transaction directory only after FINAL review PASS or explicit user abandonment. On a genuine blocker, retain the checkpoint and report the blocker plus resumable transaction location. Never delete the strongest packet merely because a review returned REPAIR.
+
 ## Start
 
 1. Resolve the project root containing the target Beads database.
@@ -78,13 +107,14 @@ Do not run `bd init` automatically. If no Beads database exists, report that pre
 4. Set `CONTEXT_SCOPE` to the smallest relevant project implementation scope, or `AUTO_RELEVANT` when the Designer must discover it. Project context is never requirement authority.
 5. Run `bd --version` and `bd prime`. Confirm the target Beads database can be read.
 6. Inspect existing Beads only enough to identify overlaps, hierarchy, and dependencies relevant to the requested compilation.
-7. If the source scope is ambiguous in a way that materially changes what is authoritative, stop and ask. Do not broaden source authority by convenience.
+7. Resume a matching unfinished Tasks transaction when one exists; otherwise initialize a new recovery transaction before Design.
+8. If source authority is materially ambiguous or contradictory in a way Tasks cannot resolve from supplied evidence, stop with the recovery checkpoint intact and ask for the missing authority.
 
 A Map export is ordinary structured input here. Do not invoke Map or reconstruct Map workflow semantics merely because the input came from Map.
 
 ## Design transaction
 
-Spawn `tasks-designer` with:
+For a new transaction, spawn `tasks-designer` with:
 
 ```text
 MODE: DESIGN
@@ -93,27 +123,29 @@ GOAL: <exact requested end result>
 SOURCE_SCOPE: <exact paths and/or exact inline source packet>
 CONTEXT_SCOPE: <smallest relevant implementation scope or AUTO_RELEVANT>
 EXISTING_BEADS_SCOPE: <relevant existing ids or AUTO>
+DESIGN_PACKET: NONE
 REVIEW_DEFICIENCIES: NONE
 ```
 
-The Designer must independently inventory the authoritative source, understand the whole objective before leaf decomposition, inspect relevant implementation context and existing Beads, and return a `DESIGN_PACKET` containing:
+The Designer must independently inventory the authoritative source, understand the whole objective before leaf decomposition, inspect relevant implementation context and existing Beads, and return a complete `DESIGN_PACKET`.
+
+The packet must contain:
 
 - a complete source coverage ledger
-- the proposed issue hierarchy
-- proposed issue contents and source anchors
-- proposed dependencies
+- proposed issue hierarchy and issue contents
+- source anchors/provenance
+- dependencies
 - mappings to reused existing issues where applicable
-- explicit blocked/deferred/out-of-scope/non-actionable dispositions
+- explicit blocker/deferred/out-of-scope/non-actionable dispositions
+- enough integration/API/application and bounded verification work to realize the source goal where current project reality makes those responsibilities necessary
 
-The Designer may derive implementation tasks that are necessary to realize the authoritative goal from current project context, but such derived work must remain traceable to the source outcome it serves and must not become a new product requirement.
+Before returning, the Designer must self-audit the packet for coverage/dispositions, provenance/constraint propagation, leaf boundaries/overlap, dependency coherence, cold-start executability, and implementation/integration sufficiency.
 
-Each coverage-ledger item must have exactly one primary disposition and may reference one or more proposed issues. The packet must be detailed enough for deterministic application without reinterpreting the source.
+Checkpoint the returned packet before Review.
 
-For very large packets, the parent may allocate temporary storage outside the project repository and pass its path between specialists. Temporary packets are transaction state only and must be deleted after completion or abort. They are never authoritative over the original source.
+## Design review and convergence
 
-## Design review
-
-Close Designer, then spawn `tasks-reviewer` with:
+Spawn `tasks-reviewer` with:
 
 ```text
 MODE: DESIGN
@@ -121,33 +153,48 @@ PROJECT_ROOT: <path>
 GOAL: <exact requested end result>
 SOURCE_SCOPE: <same authoritative source>
 CONTEXT_SCOPE: <same implementation context rule>
-DESIGN_PACKET: <designer output or temporary packet path>
+DESIGN_PACKET: <current packet or recovery path>
 APPLIED_MAPPING: NONE
+PRIOR_DEFICIENCIES: <previous ledger or NONE>
 ```
 
-The Reviewer must re-read the authoritative source independently. It must not trust the Designer's coverage ledger as proof of coverage. It may inspect relevant implementation context independently to verify that the proposed work is actually sufficient to realize the source goal.
+The Reviewer independently re-reads the authoritative source and relevant project context. It must return exactly one verdict:
 
-PASS requires all of the following:
+- `PASS`: design is ready to apply
+- `REPAIR`: one or more internally correctable design defects remain
+- `BLOCKED`: progress requires missing external authority/capability and cannot be resolved by further design work
 
-- every material source requirement, decision, constraint, dependency, deferred item, blocker, and relevant fact is accounted for
-- no source meaning is strengthened, weakened, generalized, or invented
-- necessary implementation work implied by the source plus current project reality is not silently omitted
-- project context is used only to derive execution structure, not to redefine requirements
-- the proposed hierarchy reflects the objective before details
-- executable leaves are narrowly scoped and independently assignable where possible
-- no leaf hides multiple separable responsibilities
-- cross-cutting constraints reach every issue they constrain
-- source-stated and necessary inferred dependencies are represented coherently
-- existing equivalent Beads are reused or deliberately superseded without accidental duplication
-- each executable issue carries enough context and provenance to be picked up cold
-- acceptance conditions are objective where the source supports them, without inventing arbitrary tests
-- explicit non-actionable/deferred/out-of-scope dispositions are justified and are not being used to hide implementation work
+For `REPAIR` or `BLOCKED`, each deficiency must have a stable ID and include:
+- `ID`
+- `CLASS: REPAIRABLE | EXTERNAL_BLOCKER`
+- `AREA`
+- `EVIDENCE`
+- `REQUIRED_CHANGE`
 
-On FAIL, allow one fresh Designer `MODE: DESIGN` attempt using the exact reviewer deficiencies, followed by one fresh design review. If it fails again, stop without applying the design.
+A correctable quality defect must never be classified `EXTERNAL_BLOCKER`.
+
+On `REPAIR`, checkpoint the ledger, then spawn a fresh `tasks-designer` with:
+
+```text
+MODE: REPAIR_DESIGN
+PROJECT_ROOT: <path>
+GOAL: <same goal>
+SOURCE_SCOPE: <same authoritative source>
+CONTEXT_SCOPE: <same implementation context rule>
+EXISTING_BEADS_SCOPE: <same rule>
+DESIGN_PACKET: <current packet or recovery path>
+REVIEW_DEFICIENCIES: <exact current REPAIR ledger>
+```
+
+The Designer must revise the current packet in place. Preserve accepted structure and stable keys where possible; split/add/remove/re-parent only where the deficiencies or source fidelity require it. Return a complete replacement packet plus a resolution mapping for every supplied deficiency ID.
+
+Checkpoint the revised packet and run a fresh Design Review. Repeat REPAIR_DESIGN -> Review until PASS.
+
+Do not stop merely because the same area needs multiple repair cycles. If a deficiency persists, the Reviewer should keep the same stable ID when it is materially the same defect; the next Designer must change its repair strategy rather than simply repeat the prior edit. A reviewer may return BLOCKED only when it can identify the external authority/capability required to proceed.
 
 ## Apply transaction
 
-After design review PASS, spawn a fresh `tasks-designer` with:
+After Design Review PASS, spawn a fresh `tasks-designer` with:
 
 ```text
 MODE: APPLY
@@ -155,7 +202,7 @@ PROJECT_ROOT: <path>
 GOAL: <same goal>
 SOURCE_SCOPE: <same source scope>
 CONTEXT_SCOPE: <same implementation context rule>
-DESIGN_PACKET: <reviewed packet>
+DESIGN_PACKET: <Reviewer-PASSed packet>
 REVIEW_DEFICIENCIES: NONE
 ```
 
@@ -164,13 +211,14 @@ It may reuse clearly equivalent existing issues identified in the reviewed packe
 Every newly created issue must be created with exact structured metadata `{"jls-tasks":"owned"}` using the live supported Beads metadata syntax. Reused or pre-existing issues must not acquire that ownership marker merely because Tasks touches them.
 It must read back every created/updated issue, verify ownership metadata on newly created issues, and verify relevant dependencies before returning.
 
-The result must include an `APPLIED_MAPPING` from every proposed issue key to its durable Beads ID, plus any blocked operation.
+The result must include an `APPLIED_MAPPING` from every proposed issue key to its durable Beads ID, plus any externally blocked operation.
+Checkpoint `APPLIED_MAPPING` immediately.
 
-If application cannot faithfully realize the reviewed design because the tracker changed or current Beads semantics differ from the reviewed assumptions, return BLOCKED rather than improvising a new design.
+If application cannot faithfully realize the reviewed design because tracker state or live Beads semantics changed, classify whether the problem is internally repairable. If the reviewed packet can be safely adapted without a new product decision, return an application deficiency rather than abandoning the transaction. Only missing external authority/capability is a genuine blocker.
 
-## Final durable-state review
+## Final durable-state review and repair
 
-Close Designer, then spawn `tasks-reviewer` with:
+Spawn `tasks-reviewer` with:
 
 ```text
 MODE: FINAL
@@ -178,24 +226,31 @@ PROJECT_ROOT: <path>
 GOAL: <same goal>
 SOURCE_SCOPE: <same source scope>
 CONTEXT_SCOPE: <same implementation context rule>
-DESIGN_PACKET: <reviewed packet>
+DESIGN_PACKET: <Reviewer-PASSed packet>
 APPLIED_MAPPING: <durable ids from Designer>
+PRIOR_DEFICIENCIES: <previous final-review ledger or NONE>
 ```
 
 The Reviewer must inspect the actual Beads database using current `bd prime`/help and independently compare durable tracker state against both the authoritative source and reviewed design.
 
-PASS only if:
+Its verdict is `PASS`, `REPAIR`, or `BLOCKED` under the same classification rule as Design Review.
 
-- every planned issue exists or maps to a valid reused issue
-- descriptions, design constraints, acceptance conditions, provenance, hierarchy, and dependencies materially match the reviewed design
-- every issue created by this Tasks transaction has exact structured metadata `{"jls-tasks":"owned"}` and reused/pre-existing issues were not incorrectly marked as Tasks-owned
-- the original source still has complete coverage in the durable graph
-- necessary implementation/integration work established by relevant current project context is represented without turning context into product intent
-- there are no accidental omissions, duplicates, contradictory issues, oversized leaves, orphaned executable work, or invented requirements
-- a fresh implementation agent can pick any ready leaf and understand exactly what responsibility it owns without reconstructing the planning conversation
+On `REPAIR`, checkpoint the ledger and spawn `tasks-designer` with:
 
-On FAIL, allow one `tasks-designer` `MODE: REPAIR` transaction using only the exact final-review deficiencies and the original reviewed packet. The Designer may modify only issues in the current transaction or explicitly mapped pre-existing equivalents. It may delete only an erroneous issue created by this transaction when deletion is clearly required by the reviewer; never delete unrelated or pre-existing tracker state.
-Then run one fresh FINAL review. If it fails again, stop and report that safe compilation did not complete.
+```text
+MODE: REPAIR_APPLIED
+PROJECT_ROOT: <path>
+GOAL: <same goal>
+SOURCE_SCOPE: <same source scope>
+CONTEXT_SCOPE: <same implementation context rule>
+DESIGN_PACKET: <Reviewer-PASSed packet>
+APPLIED_MAPPING: <current durable mapping>
+REVIEW_DEFICIENCIES: <exact current REPAIR ledger>
+```
+
+Repair only the identified durable-state defects. Mutate only issues created by the current transaction or pre-existing issues explicitly mapped by the reviewed design. An erroneous issue may be deleted only when it was created by this transaction and deletion is required by a reviewer deficiency. Never delete unrelated or pre-existing tracker state.
+
+Read back repairs, checkpoint the updated mapping/result, and run FINAL review again. Repeat until PASS or a genuine external blocker is identified.
 
 ## Completion boundary
 
@@ -203,4 +258,6 @@ Tasks is complete only when the final Reviewer returns PASS.
 
 Completion means the authoritative source has a reviewed, durable task representation in which every material source element has an explicit disposition and every executable responsibility needed to realize the goal is represented by sufficiently small, self-contained work.
 
-Report the created/updated issue count, reused issue count, blocked/deferred/non-actionable counts, and final review result. Do not implement the issues.
+After PASS, delete the transaction recovery directory and prune the Tasks recovery root if empty. Report the created/updated issue count, reused issue count, blocked/deferred/non-actionable counts, and final review result. Do not implement the issues.
+
+A `REPAIR` verdict is never a completion boundary and must not be surfaced to the user as "more work remains; what should I do?" Continue the workflow automatically.
