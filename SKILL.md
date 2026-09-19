@@ -83,6 +83,8 @@ Substantive Tasks work uses skill-owned recovery state under:
 ```
 
 Create `.tasks/project.json` as the recovery-root marker when the recovery root is first needed, with identity such as `{"owner":"tasks-skill","kind":"recovery","version":1}`. Store each active transaction under `.tasks/transactions/<transaction-id>/`.
+If `.tasks/` already exists without that matching marker identity, do not claim, modify, or delete it; stop before substantive work and report the recovery-path collision.
+Write checkpoint replacements atomically where the environment permits so a failed write does not destroy the last complete revision.
 
 Recovery state is not requirement authority. It is a resumable copy of work already derived from the authoritative source. At minimum persist:
 
