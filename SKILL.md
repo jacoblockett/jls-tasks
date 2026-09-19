@@ -33,7 +33,7 @@ Tasks currently uses Beads as its native task backend. The official `beads` skil
 19. Return control because of review failure only for a genuine external blocker: required user authority/evidence is missing, a required specialist/backend/tool is unavailable, the authoritative source cannot be read, or the backend cannot faithfully represent/apply the reviewed work. Internal non-convergence alone is not an external blocker.
 20. Do not mutate Beads until a design Reviewer returns PASS. Final-review repairs may mutate only the current transaction's created issues or explicitly mapped reused issues.
 21. Do not implement, edit product code, or perform the work represented by the created tasks.
-22. Every Beads issue newly created by Tasks must carry exact structured issue metadata `{"tasks":"owned"}`. Never add this ownership marker to a pre-existing issue that Tasks only reuses or updates.
+22. Every Beads issue newly created by Tasks must carry exact structured issue metadata `{"tasks-skill":"owned"}`. Never add this ownership marker to a pre-existing issue that Tasks only reuses or updates.
 
 ## Required specialists
 
@@ -82,7 +82,7 @@ Substantive Tasks work uses skill-owned recovery state under:
 <PROJECT_ROOT>/.tasks/
 ```
 
-Create `.tasks/project.json` as the recovery-root marker when the recovery root is first needed, with identity such as `{"owner":"tasks","kind":"recovery","version":1}`. Store each active transaction under `.tasks/transactions/<transaction-id>/`.
+Create `.tasks/project.json` as the recovery-root marker when the recovery root is first needed, with identity such as `{"owner":"tasks-skill","kind":"recovery","version":1}`. Store each active transaction under `.tasks/transactions/<transaction-id>/`.
 
 Recovery state is not requirement authority. It is a resumable copy of work already derived from the authoritative source. At minimum persist:
 
@@ -230,7 +230,7 @@ REVIEW_DEFICIENCIES: NONE
 
 The Designer must use current `bd prime` and command help, then create or update the approved Beads graph without re-planning it.
 It may reuse clearly equivalent existing issues identified in the reviewed packet. It must preserve unrelated existing tracker state.
-Every newly created issue must be created with exact structured metadata `{"tasks":"owned"}` using the live supported Beads metadata syntax. Reused or pre-existing issues must not acquire that ownership marker merely because Tasks touches them.
+Every newly created issue must be created with exact structured metadata `{"tasks-skill":"owned"}` using the live supported Beads metadata syntax. Reused or pre-existing issues must not acquire that ownership marker merely because Tasks touches them.
 It must read back every created/updated issue, verify ownership metadata on newly created issues, and verify relevant dependencies before returning.
 
 The result must include an `APPLIED_MAPPING` from every proposed issue key to its durable Beads ID, plus any externally blocked operation.
