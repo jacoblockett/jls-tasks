@@ -39,5 +39,12 @@
       "metadata_key": "jls-tasks",
       "metadata_value": "owned"
     }
+  ],
+  "generated_data": [
+    {
+      "path": ".jls/tasks",
+      "marker": "project.json",
+      "description": "Resumable Tasks design and review transaction checkpoints"
+    }
   ]
 }
