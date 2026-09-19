@@ -157,7 +157,7 @@ SOURCE_SCOPE: <same authoritative source>
 CONTEXT_SCOPE: <same implementation context rule>
 DESIGN_PACKET: <current packet or recovery path>
 APPLIED_MAPPING: NONE
-PRIOR_DEFICIENCIES: <previous ledger or NONE>
+PRIOR_DEFICIENCIES: <active and relevant historical deficiency ledger or NONE>
 ```
 
 The Reviewer independently re-reads the authoritative source and relevant project context. It must return exactly one verdict:
@@ -199,6 +199,8 @@ Do not stop merely because the same area needs multiple repair cycles. If a defi
 ## Convergence guard
 
 Prevent infinite reviewer/designer loops without discarding work.
+
+Treat deficiency identity semantically, not merely by the reviewer's label. Before updating counters, reconcile the new ledger against the full transaction history. If a reviewer gives a new ID to a materially equivalent prior defect, remap it to the prior stable ID. If a previously resolved defect reappears, restore its historical ID and treat the recurrence as `REGRESSED`.
 
 For each stable deficiency ID, maintain a `NO_PROGRESS_STREAK` in recovery state:
 - `NEW` or `NARROWED`: reset the streak to 0.
@@ -254,7 +256,7 @@ SOURCE_SCOPE: <same source scope>
 CONTEXT_SCOPE: <same implementation context rule>
 DESIGN_PACKET: <Reviewer-PASSed packet>
 APPLIED_MAPPING: <durable ids from Designer>
-PRIOR_DEFICIENCIES: <previous final-review ledger or NONE>
+PRIOR_DEFICIENCIES: <active and relevant historical final-review ledger or NONE>
 ```
 
 The Reviewer must inspect the actual Beads database using current `bd prime`/help and independently compare durable tracker state against both the authoritative source and reviewed design.
