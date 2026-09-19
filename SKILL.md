@@ -82,7 +82,7 @@ Substantive Tasks work uses JLS-owned recovery state under:
 <PROJECT_ROOT>/.jls/tasks/
 ```
 
-Create `.jls/tasks/project.json` as the ownership marker when the recovery root is first needed. Store each active transaction under `.jls/tasks/transactions/<transaction-id>/`.
+Create `.jls/tasks/project.json` as the ownership marker when the recovery root is first needed, with JLS Tasks recovery identity such as `{"owner":"jls-tasks","kind":"recovery","version":1}`. Store each active transaction under `.jls/tasks/transactions/<transaction-id>/`.
 
 Recovery state is not requirement authority. It is a resumable copy of work already derived from the authoritative source. At minimum persist:
 
@@ -214,7 +214,9 @@ It must read back every created/updated issue, verify ownership metadata on newl
 The result must include an `APPLIED_MAPPING` from every proposed issue key to its durable Beads ID, plus any externally blocked operation.
 Checkpoint `APPLIED_MAPPING` immediately.
 
-If application cannot faithfully realize the reviewed design because tracker state or live Beads semantics changed, classify whether the problem is internally repairable. If the reviewed packet can be safely adapted without a new product decision, return an application deficiency rather than abandoning the transaction. Only missing external authority/capability is a genuine blocker.
+Before the first Beads mutation, reconcile the reviewed packet against current tracker state and live Beads semantics. If faithful application now requires an internally resolvable design adjustment, return `REPAIR_REQUIRED` before mutating anything. Checkpoint the application deficiency, run `REPAIR_DESIGN` against the current packet and current tracker context, obtain a fresh Design Review PASS, then retry APPLY.
+
+Once mutation begins, continue through the reviewed application and readback rather than voluntarily stopping mid-apply. If an external backend/tool failure prevents completion after safe retries, checkpoint every durable ID already created or updated and return the genuine external blocker; never discard that mapping.
 
 ## Final durable-state review and repair
 
@@ -258,6 +260,6 @@ Tasks is complete only when the final Reviewer returns PASS.
 
 Completion means the authoritative source has a reviewed, durable task representation in which every material source element has an explicit disposition and every executable responsibility needed to realize the goal is represented by sufficiently small, self-contained work.
 
-After PASS, delete the transaction recovery directory and prune the Tasks recovery root if empty. Report the created/updated issue count, reused issue count, blocked/deferred/non-actionable counts, and final review result. Do not implement the issues.
+After PASS, delete the transaction recovery directory. If no other Tasks transactions remain, remove the Tasks recovery root and its marker as well. Report the created/updated issue count, reused issue count, blocked/deferred/non-actionable counts, and final review result. Do not implement the issues.
 
 A `REPAIR` verdict is never a completion boundary and must not be surfaced to the user as "more work remains; what should I do?" Continue the workflow automatically.
