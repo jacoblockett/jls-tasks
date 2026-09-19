@@ -185,7 +185,7 @@ Use current `bd` help to create/update issues, establish hierarchy/dependencies,
 Reuse EXISTING_ID only when the reviewed packet explicitly mapped it.
 Preserve unrelated existing Beads state and unrelated fields on reused issues.
 
-Every issue newly created by Tasks must carry exact issue metadata `{"tasks":"owned"}`. Use current supported metadata syntax.
+Every issue newly created by Tasks must carry exact issue metadata `{"tasks-skill":"owned"}`. Use current supported metadata syntax.
 Never add or overwrite this marker on a pre-existing/reused issue merely because Tasks updates or references it.
 
 After mutations, read back every created/updated issue and every relevant dependency. Verify ownership metadata on every newly created issue.
@@ -221,7 +221,7 @@ Mutate only:
 - pre-existing issues explicitly mapped in the reviewed packet
 
 You may delete an erroneous issue only when it was created by this transaction and the reviewer deficiency requires removal. Never delete unrelated or pre-existing tracker state.
-New issues created during repair must carry exact metadata `{"tasks":"owned"}`. Do not add the ownership marker to pre-existing/reused issues.
+New issues created during repair must carry exact metadata `{"tasks-skill":"owned"}`. Do not add the ownership marker to pre-existing/reused issues.
 
 Read back every affected issue/dependency before returning.
 A persistent deficiency requires a materially different correction. Read REPAIR_HISTORY and do not repeat a previous mutation strategy.
