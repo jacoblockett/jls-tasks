@@ -26,18 +26,18 @@ Tasks currently uses Beads as its native task backend. The official `beads` skil
 12. Existing tracker items are context, not authority over the supplied source. Reuse or update a clearly equivalent existing issue instead of duplicating it, but do not let stale tracker state erase or rewrite authoritative source requirements.
 13. Do not invent product decisions to make the task graph look complete. Material ambiguity that prevents faithful decomposition is an external blocker; defects in Tasks' own design are not.
 14. Children run serially. Consume and close each child before spawning another. Children never spawn children.
-15. Spawn prompts contain only dynamic source/project arguments, current transaction packets, and exact reviewer deficiencies. The installed specialist definition owns its semantic contract.
+15. Spawn prompts contain only dynamic source/project arguments, current transaction packets, and exact reviewer deficiencies. The specialist definition owns its semantic contract.
 16. A reviewer finding omissions, weak provenance, incomplete constraint propagation, oversized/overlapping issues, missing integration work, bad dependencies, or other correctable design defects is an instruction to repair, not a reason to stop.
-17. There is no fixed repair-attempt limit. Continue targeted design or durable-state repair while the remaining deficiencies can be resolved from the authorized source, available project context, current tracker state, and installed tooling.
+17. There is no fixed repair-attempt limit. Continue targeted design or durable-state repair while the remaining deficiencies can be resolved from the authorized source, available project context, current tracker state, and available tooling.
 18. Never throw away the strongest recoverable design merely because review failed. Repair the current packet in place and preserve stable source IDs and issue keys wherever their meaning survives.
 19. Return control because of review failure only for a genuine external blocker: required user authority/evidence is missing, a required specialist/backend/tool is unavailable, the authoritative source cannot be read, or the backend cannot faithfully represent/apply the reviewed work. Internal non-convergence alone is not an external blocker.
 20. Do not mutate Beads until a design Reviewer returns PASS. Final-review repairs may mutate only the current transaction's created issues or explicitly mapped reused issues.
 21. Do not implement, edit product code, or perform the work represented by the created tasks.
-22. Every Beads issue newly created by Tasks must carry exact structured issue metadata `{"jls-tasks":"owned"}`. Never add this ownership marker to a pre-existing issue that Tasks only reuses or updates.
+22. Every Beads issue newly created by Tasks must carry exact structured issue metadata `{"tasks":"owned"}`. Never add this ownership marker to a pre-existing issue that Tasks only reuses or updates.
 
 ## Required specialists
 
-JLS installs two native specialists:
+Tasks requires two native specialists:
 
 - `tasks-designer`
 - `tasks-reviewer`
@@ -46,7 +46,7 @@ Use the exact registered name. Do not replace a required specialist with a gener
 
 ## Live backend guidance
 
-Tasks currently writes to Beads. Do not depend on memorized `bd` flags when the installed version can answer directly.
+Tasks currently writes to Beads. Do not depend on memorized `bd` flags when the current CLI can answer directly.
 At the start of a substantive transaction:
 
 ```text
@@ -54,7 +54,7 @@ bd --version
 bd prime
 ```
 
-Treat `bd prime` as the live AI-oriented source of truth for the installed runtime. Before an unfamiliar or version-sensitive operation, use:
+Treat `bd prime` as the live AI-oriented source of truth for the current runtime. Before an unfamiliar or version-sensitive operation, use:
 
 ```text
 bd <command> --help
@@ -76,21 +76,21 @@ Do not run `bd init` automatically. If no Beads database exists, report that pre
 
 ## Durable transaction recovery
 
-Substantive Tasks work uses JLS-owned recovery state under:
+Substantive Tasks work uses skill-owned recovery state under:
 
 ```text
-<PROJECT_ROOT>/.jls/tasks/
+<PROJECT_ROOT>/.tasks/
 ```
 
-Create `.jls/tasks/project.json` as the ownership marker when the recovery root is first needed, with JLS Tasks recovery identity such as `{"owner":"jls-tasks","kind":"recovery","version":1}`. Store each active transaction under `.jls/tasks/transactions/<transaction-id>/`.
+Create `.tasks/project.json` as the recovery-root marker when the recovery root is first needed, with identity such as `{"owner":"tasks","kind":"recovery","version":1}`. Store each active transaction under `.tasks/transactions/<transaction-id>/`.
 
 Recovery state is not requirement authority. It is a resumable copy of work already derived from the authoritative source. At minimum persist:
 
 - the resolved `GOAL`, `SOURCE_SCOPE`, and `CONTEXT_SCOPE`
 - current stage
-- latest complete `DESIGN_PACKET`
-- latest review verdict and structured deficiency ledger
-- resolved deficiency IDs from prior revisions when useful
+- every complete design revision and review ledger, plus a pointer to the current strongest packet
+- stable deficiency IDs, per-deficiency progress classification, repair strategies, and no-progress streaks
+- resolved deficiency IDs from prior revisions
 - `APPLIED_MAPPING` once Beads mutation begins
 
 Checkpoint before launching the next specialist stage and immediately after consuming its result. Large specialist packets should be written into this transaction directory rather than depending on chat context.
@@ -167,11 +167,12 @@ The Reviewer independently re-reads the authoritative source and relevant projec
 For `REPAIR` or `BLOCKED`, each deficiency must have a stable ID and include:
 - `ID`
 - `CLASS: REPAIRABLE | EXTERNAL_BLOCKER`
+- `PROGRESS: NEW | NARROWED | UNCHANGED | REGRESSED`
 - `AREA`
 - `EVIDENCE`
 - `REQUIRED_CHANGE`
 
-A correctable quality defect must never be classified `EXTERNAL_BLOCKER`.
+`PROGRESS` is relative to the prior ledger for the same stable deficiency ID. A correctable quality defect must never be classified `EXTERNAL_BLOCKER`.
 
 On `REPAIR`, checkpoint the ledger, then spawn a fresh `tasks-designer` with:
 
@@ -184,13 +185,34 @@ CONTEXT_SCOPE: <same implementation context rule>
 EXISTING_BEADS_SCOPE: <same rule>
 DESIGN_PACKET: <current packet or recovery path>
 REVIEW_DEFICIENCIES: <exact current REPAIR ledger>
+REPAIR_HISTORY: <prior repair strategies and outcomes for active deficiency IDs or NONE>
 ```
 
 The Designer must revise the current packet in place. Preserve accepted structure and stable keys where possible; split/add/remove/re-parent only where the deficiencies or source fidelity require it. Return a complete replacement packet plus a resolution mapping for every supplied deficiency ID.
 
-Checkpoint the revised packet and run a fresh Design Review. Repeat REPAIR_DESIGN -> Review until PASS.
+Checkpoint the revised packet and run a fresh Design Review. Repeat REPAIR_DESIGN -> Review until PASS or the convergence guard below triggers.
 
-Do not stop merely because the same area needs multiple repair cycles. If a deficiency persists, the Reviewer should keep the same stable ID when it is materially the same defect; the next Designer must change its repair strategy rather than simply repeat the prior edit. A reviewer may return BLOCKED only when it can identify the external authority/capability required to proceed.
+Do not stop merely because the same area needs multiple repair cycles. If a deficiency persists, the Reviewer must keep the same stable ID when it is materially the same defect; the next Designer must receive its repair history and change strategy rather than repeat the prior edit. A reviewer may return BLOCKED only when it can identify the external authority/capability required to proceed.
+
+## Convergence guard
+
+Prevent infinite reviewer/designer loops without discarding work.
+
+For each stable deficiency ID, maintain a `NO_PROGRESS_STREAK` in recovery state:
+- `NEW` or `NARROWED`: reset the streak to 0.
+- `UNCHANGED` or `REGRESSED` after a completed repair attempt: increment the streak.
+- resolved deficiencies leave the active ledger but remain in history.
+
+Before each repair, pass the active deficiency's prior repair strategies in `REPAIR_HISTORY`. The Designer must attempt a materially different correction when the same deficiency persists.
+
+If any deficiency reaches a no-progress streak of 3:
+1. Do not launch another automatic repair cycle for that deficiency.
+2. Persist the current strongest design packet, every prior design/review revision, repair history, latest deficiency ledger, counters, and any `APPLIED_MAPPING`.
+3. Mark the transaction `STALLED_DESIGN_REVIEW` or `STALLED_FINAL_REVIEW`.
+4. Do not delete or roll back already-durable state. Before APPLY this means the recovery checkpoint remains and Beads is untouched; after APPLY, preserve all current transaction-created/reused Beads state and its mapping.
+5. Report the exact stalled deficiency IDs and recovery transaction path. Do not present the stall as an external blocker and do not claim the work was discarded.
+
+A later Tasks invocation may resume a stalled transaction. Re-read current source/project/tracker state, preserve the repair history, reset the automatic no-progress streak for the explicit resume, and require a new repair strategy rather than replaying a prior one.
 
 ## Apply transaction
 
@@ -208,7 +230,7 @@ REVIEW_DEFICIENCIES: NONE
 
 The Designer must use current `bd prime` and command help, then create or update the approved Beads graph without re-planning it.
 It may reuse clearly equivalent existing issues identified in the reviewed packet. It must preserve unrelated existing tracker state.
-Every newly created issue must be created with exact structured metadata `{"jls-tasks":"owned"}` using the live supported Beads metadata syntax. Reused or pre-existing issues must not acquire that ownership marker merely because Tasks touches them.
+Every newly created issue must be created with exact structured metadata `{"tasks":"owned"}` using the live supported Beads metadata syntax. Reused or pre-existing issues must not acquire that ownership marker merely because Tasks touches them.
 It must read back every created/updated issue, verify ownership metadata on newly created issues, and verify relevant dependencies before returning.
 
 The result must include an `APPLIED_MAPPING` from every proposed issue key to its durable Beads ID, plus any externally blocked operation.
@@ -248,11 +270,12 @@ CONTEXT_SCOPE: <same implementation context rule>
 DESIGN_PACKET: <Reviewer-PASSed packet>
 APPLIED_MAPPING: <current durable mapping>
 REVIEW_DEFICIENCIES: <exact current REPAIR ledger>
+REPAIR_HISTORY: <prior repair strategies and outcomes for active deficiency IDs or NONE>
 ```
 
 Repair only the identified durable-state defects. Mutate only issues created by the current transaction or pre-existing issues explicitly mapped by the reviewed design. An erroneous issue may be deleted only when it was created by this transaction and deletion is required by a reviewer deficiency. Never delete unrelated or pre-existing tracker state.
 
-Read back repairs, checkpoint the updated mapping/result, and run FINAL review again. Repeat until PASS or a genuine external blocker is identified.
+Read back repairs, checkpoint the updated mapping/result, and run FINAL review again. Repeat until PASS, a genuine external blocker is identified, or the same convergence guard reaches its no-progress threshold. A stalled final review preserves the current Beads graph and recovery mapping for later resume; never delete or roll it back merely because review did not converge.
 
 ## Completion boundary
 
@@ -260,6 +283,6 @@ Tasks is complete only when the final Reviewer returns PASS.
 
 Completion means the authoritative source has a reviewed, durable task representation in which every material source element has an explicit disposition and every executable responsibility needed to realize the goal is represented by sufficiently small, self-contained work.
 
-After PASS, delete the transaction recovery directory. If no other Tasks transactions remain, remove the Tasks recovery root and its marker as well. Report the created/updated issue count, reused issue count, blocked/deferred/non-actionable counts, and final review result. Do not implement the issues.
+After PASS, delete the transaction recovery directory. If no other Tasks transactions remain, remove the `.tasks` recovery root and its marker as well. Report the created/updated issue count, reused issue count, blocked/deferred/non-actionable counts, and final review result. Do not implement the issues.
 
 A `REPAIR` verdict is never a completion boundary and must not be surfaced to the user as "more work remains; what should I do?" Continue the workflow automatically.
