@@ -135,8 +135,8 @@ Compare durable state against SOURCE_SCOPE, relevant implementation context, and
 PASS only if:
 - every planned issue exists or maps to the reviewed reused issue
 - durable fields and relations materially match the reviewed design
-- every issue created by this Tasks transaction has structured metadata containing exact key/value `"tasks": "owned"`
-- no pre-existing/reused issue has been given the `tasks` ownership marker merely because Tasks reused or updated it
+- every issue created by this Tasks transaction has structured metadata containing exact key/value `"tasks-skill": "owned"`
+- no pre-existing/reused issue has been given the `tasks-skill` ownership marker merely because Tasks reused or updated it
 - the original source remains completely covered in durable Beads
 - necessary implementation/integration work established by relevant current project context is represented without turning context into product intent
 - no application-time omission, duplicate, contradiction, orphan, oversized leaf, bad dependency, or invented requirement appeared
