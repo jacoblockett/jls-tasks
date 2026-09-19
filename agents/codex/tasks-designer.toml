@@ -236,6 +236,7 @@ AFFECTED: <id list or NONE>
 RESOLUTIONS:
 - DEFICIENCY_ID: <D...>
   RESULT: RESOLVED | EXTERNAL_BLOCKER
+  STRATEGY: <materially specific durable-state repair approach used this round>
   CHANGE: <specific durable-state correction or missing authority>
 APPLIED_MAPPING:
 - <ISSUE_KEY>: <durable-id>
