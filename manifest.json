@@ -36,7 +36,7 @@
     {
       "kind": "beads-metadata",
       "description": "Tasks-generated Beads tasks/issues",
-      "metadata_key": "tasks",
+      "metadata_key": "tasks-skill",
       "metadata_value": "owned"
     },
     {
