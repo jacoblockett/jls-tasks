@@ -192,7 +192,8 @@ Never add or overwrite this marker on a pre-existing/reused issue merely because
 
 After mutations, read back every created/updated issue and every relevant dependency. Verify ownership metadata on every newly created issue.
 
-If a current tracker condition prevents faithful application but can be resolved without new user authority or a new product decision, return REPAIR_REQUIRED rather than BLOCKED. Include the exact condition and any partial mapping already created.
+If a current tracker condition prevents faithful application but can be resolved without new user authority or a new product decision, return REPAIR_REQUIRED rather than BLOCKED. REPAIR_REQUIRED must be returned before the first mutation, with CREATED/UPDATED empty, so the parent can repair and re-review the design without leaving an unreviewed partial graph.
+Once the first mutation occurs, finish the reviewed application and readback unless a genuine external backend/tool failure prevents completion. Preserve any durable mapping already created if that happens.
 BLOCKED is reserved for an external limitation that Tasks cannot resolve itself.
 
 Return exactly:
