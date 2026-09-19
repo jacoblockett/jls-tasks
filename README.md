@@ -4,6 +4,8 @@ Tasks is a lossless, exhaustive compiler for turning authoritative goals, specif
 
 Tasks currently uses Beads as its native task backend. It supports OpenAI Codex and Claude Code.
 
+Tasks independently reviews both proposed and durable task graphs. Correctable review defects are repaired against the current design rather than abandoning the transaction, and substantive transactions keep resumable recovery checkpoints until final review passes.
+
 ## Install
 
 The recommended way to install Tasks is with [JLS](https://github.com/jacoblockett/jls), which manages installation, updates, and removal.
