@@ -118,9 +118,7 @@ jobs:
           set -euo pipefail
 
           version="$(jq -er '.version' manifest.json)"
-          min_installer="$(jq -er '.min_installer' manifest.json)"
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          [[ "$min_installer" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           [[ "$(jq -r '.name' manifest.json)" == tasks ]]
           [[ "$(jq -r '.skill_files | join(" ")' manifest.json)" == SKILL.md ]]
           [[ "$(jq -r '.instruction_fragment' manifest.json)" == AGENTS.md ]]
@@ -156,7 +154,7 @@ jobs:
           jq \
             --arg url "$url" \
             --arg sha256 "$sha256" \
-            '{name, version, min_installer, description, artifacts: {portable: {url: $url, sha256: $sha256}}}
+            '{name, version, description, artifacts: {portable: {url: $url, sha256: $sha256}}}
              + (if has("dependencies") then {dependencies} else {} end)' \
             manifest.json > build/release/manifest.json
 
@@ -216,6 +214,5 @@ jobs:
             git tag -f nightly "$GITHUB_SHA"
             git push origin refs/tags/nightly --force
           else
-            min_installer="$(jq -er '.min_installer' manifest.json)"
-            gh release create "$RELEASE_TAG" "${assets[@]}" --repo "$GH_REPO" --title "$RELEASE_TAG" --notes "Requires JLS installer $min_installer or newer." --generate-notes --target "$GITHUB_SHA"
+            gh release create "$RELEASE_TAG" "${assets[@]}" --repo "$GH_REPO" --title "$RELEASE_TAG" --generate-notes --target "$GITHUB_SHA"
           fi
