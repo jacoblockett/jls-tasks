@@ -3,6 +3,10 @@ name: Test
 on:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.repository }}-automation
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
