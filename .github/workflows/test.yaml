@@ -24,11 +24,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download test package
+      - name: Download verified release bundle
         uses: actions/download-artifact@v4
         with:
           name: release-bundle
-          path: test-assets
+          path: build/release
 
       - name: Publish rolling Test prerelease
         shell: bash
@@ -37,22 +37,18 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          mapfile -t assets < <(find test-assets -maxdepth 1 -type f -print | sort)
-          (( ${#assets[@]} > 0 )) || { echo 'No test assets were staged.' >&2; exit 1; }
+          mapfile -t assets < <(find build/release -maxdepth 1 -type f -print | sort)
+          (( ${#assets[@]} > 0 )) || { echo 'Verified release bundle is empty.' >&2; exit 1; }
 
           if gh release view test --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release upload test "${assets[@]}" --repo "$GH_REPO" --clobber
             mapfile -t existing < <(gh release view test --repo "$GH_REPO" --json assets --jq '.assets[].name')
             for name in "${existing[@]}"; do
-              [[ -f "test-assets/$name" ]] || gh release delete-asset test "$name" --repo "$GH_REPO" -y
+              [[ -f "build/release/$name" ]] || gh release delete-asset test "$name" --repo "$GH_REPO" -y
             done
             gh release edit test --repo "$GH_REPO" --title Test --notes 'Rolling test build from main.' --prerelease --latest=false
           else
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git tag -f test "$GITHUB_SHA"
-            git push origin refs/tags/test --force
-            gh release create test "${assets[@]}" --repo "$GH_REPO" --verify-tag --title Test --notes 'Rolling test build from main.' --prerelease --latest=false
+            gh release create test "${assets[@]}" --repo "$GH_REPO" --title Test --notes 'Rolling test build from main.' --prerelease --latest=false --target "$GITHUB_SHA"
           fi
 
           git config user.name 'github-actions[bot]'
