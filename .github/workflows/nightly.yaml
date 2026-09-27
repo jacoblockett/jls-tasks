@@ -39,7 +39,6 @@ jobs:
     if: needs.check.outputs.should_build == 'true'
     uses: ./.github/workflows/build.yaml
     with:
-      release_tag: nightly
 
   publish:
     needs: [check, build]
